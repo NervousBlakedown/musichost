@@ -1,64 +1,56 @@
-# Route to handle file uploads and save them to server.
-import os
-from flask import render_template, flash, redirect, url_for, request
-from werkzeug.utils import secure_filename
-from app import app, db
-from app.forms import RegistrationForm, LoginForm, UploadForm
-from app.models import User, Song
-from flask_login import login_user, current_user, logout_user, login_required
+from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask_login import login_user, login_required, logout_user, current_user
+from .models import User, db, Music
+from .forms import LoginForm, RegisterForm
 
-@app.route('/')
-@app.route('/home')
-def home():
-    songs = Song.query.all()
-    return render_template('index.html', songs=songs)
+main = Blueprint('main', __name__)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data, password=form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Your account has been created!', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', title='Register', form=form)
-
-@app.route('/login', methods=['GET', 'POST'])
+@main.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(username=form.username.data).first()
         if user and user.password == form.password.data:
-            login_user(user, remember=True)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('home'))
-        else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html', title='Login', form=form)
+            login_user(user)
+            return redirect(url_for('main.index'))
+        flash('Invalid username or password')
+    return render_template('login.html', form=form)
 
-@app.route('/logout')
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
+@main.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        new_user = User(username=form.username.data, password=form.password.data)
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return redirect(url_for('main.index'))
+    return render_template('register.html', form=form)
 
-@app.route('/upload', methods=['GET', 'POST'])
+@main.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
-    form = UploadForm()
-    if form.validate_on_submit():
-        file = form.file.data
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.root_path, 'static/music', filename)
-        file.save(file_path)
-        song = Song(title=filename, file_path=file_path, author=current_user)
-        db.session.add(song)
-        db.session.commit()
-        flash('Your song has been uploaded!', 'success')
-        return redirect(url_for('home'))
-    return render_template('upload.html', title='Upload Music', form=form)
+    if request.method == 'POST':
+        title = request.form['title']
+        file = request.files['file']
+        if file:
+            filename = file.filename
+            filepath = f'static/music/{filename}'
+            file.save(filepath)
+            new_music = Music(title=title, filename=filename, user_id=current_user.id)
+            db.session.add(new_music)
+            db.session.commit()
+            return redirect(url_for('main.index'))
+    return render_template('upload.html')
 
+@main.route('/')
+@login_required
+def index():
+    music_list = Music.query.filter_by(user_id=current_user.id).all()
+    return render_template('index.html', music_list=music_list)
+
+@main.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('main.login'))

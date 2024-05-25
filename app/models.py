@@ -1,23 +1,17 @@
-# Models to store file information.
-# Imports
-from app import db
+from .extensions import db
 from flask_login import UserMixin
 
-class User(db.Model, UserMixin):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
-    songs = db.relationship('Song', backref='author', lazy=True)
+    username = db.Column(db.String(150), nullable=False, unique=True)
+    password = db.Column(db.String(150), nullable=False)
 
-    def __repr__(self):
-        return f"User('{self.username}', '{self.email}')"
+    @staticmethod
+    def get(user_id):
+        return User.query.get(user_id)
 
-class Song(db.Model):
+class Music(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
-    file_path = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    filename = db.Column(db.String(150), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
-    def __repr__(self):
-        return f"Song('{self.title}', '{self.file_path}')"
