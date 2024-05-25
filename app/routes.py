@@ -1,5 +1,4 @@
 # Route to handle file uploads and save them to server.
-# Imports
 import os
 from flask import render_template, flash, redirect, url_for, request
 from werkzeug.utils import secure_filename
