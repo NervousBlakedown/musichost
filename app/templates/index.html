@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<h1>Welcome to My Music Platform</h1>
+{% for song in songs %}
+  <div>
+    <h2>{{ song.title }}</h2>
+    <audio controls>
+      <source src="{{ url_for('static', filename='music/' ~ song.title) }}" type="audio/mpeg">
+      Your browser does not support the audio element.
+    </audio>
+  </div>
+{% endfor %}
+{% endblock %}
