@@ -1,16 +1,23 @@
 from flask import Flask
 from .extensions import db, login_manager, csrf
 import yaml
+import os
+from dotenv import load_dotenv
+
+# Load .env variables from .env file
+load_dotenv()
 
 def create_app():
     app = Flask(__name__)
 
     # Load configuration from YAML file
-    with open('C:\\Users\\blake\\Documents\\github\\musichost_creds.yaml', 'r') as config_file:
+    creds_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../musichost_creds.yaml')
+
+    with open(creds_path, 'r') as config_file:
         config = yaml.safe_load(config_file)
 
     app.config['SECRET_KEY'] = config.get('SECRET_KEY', 'default_secret_key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = config.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///C://Users//blake//Documents//github//musichost_site.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = config.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///instance/musichost_site.db')
 
     # Initialize extensions
     db.init_app(app)
